@@ -9,9 +9,11 @@ import { addRoomDoc, setRoomState } from "../firebase/firestoreService.js";
 import { uploadDataUrl, uploadFile } from "../firebase/storageService.js";
 import { useRoomState } from "../hooks/useRoomState.js";
 import { useAppStore } from "../store/useAppStore.js";
+import { partnerFor } from "../utils/couple.js";
 
 export default function Room() {
   const roomId = useAppStore((state) => state.roomId);
+  const persona = useAppStore((state) => state.persona);
   const showToast = useAppStore((state) => state.showToast);
   const { roomState } = useRoomState();
   const fileRef = useRef(null);
@@ -19,31 +21,49 @@ export default function Room() {
   const [input, setInput] = useState(null);
   const [drawOpen, setDrawOpen] = useState(false);
 
+  const partner = partnerFor(persona);
+
   async function upload(event) {
     const file = event.target.files?.[0];
     if (!file) return;
-    const url = await uploadFile(roomId, target === "wall" ? "wall" : "room-photo", file);
-    await setRoomState(roomId, target === "wall" ? { wallDoodleUrl: url, lastAction: "AI pinned a wall doodle" } : { photoUrl: url, lastAction: "AI changed the photo frame" });
-    await addRoomDoc(roomId, "activities", { actor: "AI", text: target === "wall" ? "AI pinned a wall doodle" : "AI uploaded a room photo", type: "room" });
-    event.target.value = "";
+    try {
+      const url = await uploadFile(roomId, target === "wall" ? "wall" : "room-photo", file);
+      await setRoomState(roomId, target === "wall" ? { wallDoodleUrl: url, lastAction: `${persona} pinned a wall doodle` } : { photoUrl: url, lastAction: `${persona} changed the photo frame` });
+      await addRoomDoc(roomId, "activities", { actor: persona, text: target === "wall" ? `${persona} pinned a wall doodle` : `${persona} uploaded a room photo`, type: "room" });
+      event.target.value = "";
+    } catch (error) {
+      showToast(error.message, "blue");
+    }
   }
 
   async function feedPet() {
-    const count = (roomState.petFedCount || 0) + 1;
-    await setRoomState(roomId, { petFedCount: count, lastAction: "AI fed the pet" });
-    await addRoomDoc(roomId, "activities", { actor: "AI", text: "AI fed the pet", type: "room" });
+    try {
+      const count = (roomState.petFedCount || 0) + 1;
+      await setRoomState(roomId, { petFedCount: count, lastAction: `${persona} fed the pet` });
+      await addRoomDoc(roomId, "activities", { actor: persona, text: `${persona} fed the pet`, type: "room" });
+    } catch (error) {
+      showToast(error.message, "blue");
+    }
   }
 
   async function saveInput(value) {
-    const patch = input === "note" ? { note: value, lastAction: "AI left a note for The One" } : { gift: value, lastAction: "AI dropped a gift message" };
-    await setRoomState(roomId, patch);
-    await addRoomDoc(roomId, "activities", { actor: "AI", text: patch.lastAction, type: "room" });
+    try {
+      const patch = input === "note" ? { note: value, lastAction: `${persona} left a note for ${partner}` } : { gift: value, lastAction: `${persona} dropped a gift message` };
+      await setRoomState(roomId, patch);
+      await addRoomDoc(roomId, "activities", { actor: persona, text: patch.lastAction, type: "room" });
+    } catch (error) {
+      showToast(error.message, "blue");
+    }
   }
 
   async function sendWallDoodle(dataUrl) {
-    const url = await uploadDataUrl(roomId, "wall-doodles", dataUrl);
-    await setRoomState(roomId, { wallDoodleUrl: url, lastAction: "AI pinned a doodle for The One" });
-    showToast("Wall doodle pinned for The One");
+    try {
+      const url = await uploadDataUrl(roomId, "wall-doodles", dataUrl);
+      await setRoomState(roomId, { wallDoodleUrl: url, lastAction: `${persona} pinned a doodle for ${partner}` });
+      showToast(`Wall doodle pinned for ${partner}`);
+    } catch (error) {
+      showToast(error.message, "blue");
+    }
   }
 
   return (
@@ -60,7 +80,7 @@ export default function Room() {
 
           <button onClick={() => setInput("note")} className="absolute right-5 top-24 w-36 rounded-3xl border border-yellow-200/20 bg-yellow-300/15 p-4 text-left shadow-lg">
             <StickyNote className="mb-2 h-5 w-5 text-yellow-200" />
-            <p className="text-xs font-bold text-yellow-100">Note for The One</p>
+            <p className="text-xs font-bold text-yellow-100">Note for {partner}</p>
             <p className="mt-1 line-clamp-3 text-xs text-white/80">{roomState.note}</p>
           </button>
 
@@ -100,8 +120,8 @@ export default function Room() {
         onClose={() => setInput(null)}
         onSubmit={saveInput}
         title={input === "note" ? "Sticky Note Desk" : "Gift Shelf"}
-        label={input === "note" ? "Leave a note for The One" : "Drop a cute gift message"}
-        placeholder={input === "note" ? "The One, drink water and miss AI." : "A tiny gift, a promise, a dare..."}
+        label={input === "note" ? `Leave a note for ${partner}` : "Drop a cute gift message"}
+        placeholder={input === "note" ? `${partner}, drink water and miss ${persona}.` : "A tiny gift, a promise, a dare..."}
         multiline
       />
       <DoodleModal open={drawOpen} onClose={() => setDrawOpen(false)} onSend={sendWallDoodle} title="Pin a wall doodle" />

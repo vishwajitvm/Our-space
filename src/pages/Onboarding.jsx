@@ -2,6 +2,7 @@ import { HeartHandshake, KeyRound, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ActionButton from "../components/ui/ActionButton.jsx";
+import FirebaseNotice from "../components/ui/FirebaseNotice.jsx";
 import NeonCard from "../components/ui/NeonCard.jsx";
 import { createRoom, joinRoom } from "../firebase/firestoreService.js";
 import { useAppStore } from "../store/useAppStore.js";
@@ -9,6 +10,8 @@ import { useAppStore } from "../store/useAppStore.js";
 export default function Onboarding() {
   const navigate = useNavigate();
   const setRoomId = useAppStore((state) => state.setRoomId);
+  const persona = useAppStore((state) => state.persona);
+  const setPersona = useAppStore((state) => state.setPersona);
   const showToast = useAppStore((state) => state.showToast);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -56,6 +59,18 @@ export default function Onboarding() {
       </section>
 
       <NeonCard>
+        <FirebaseNotice />
+        <div className="my-5 grid grid-cols-2 gap-2 rounded-3xl bg-space-soft p-2">
+          {["AI", "The One"].map((option) => (
+            <button
+              key={option}
+              onClick={() => setPersona(option)}
+              className={`rounded-3xl px-3 py-3 text-sm font-bold transition ${persona === option ? "bg-space-pink text-white shadow-glow" : "text-space-muted"}`}
+            >
+              This device is {option}
+            </button>
+          ))}
+        </div>
         <form onSubmit={join} className="space-y-4">
           <label className="text-sm font-semibold text-white">Join with invite code</label>
           <div className="flex gap-2">

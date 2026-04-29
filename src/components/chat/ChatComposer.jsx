@@ -1,7 +1,7 @@
 import { ImagePlus, Mic, Paintbrush, Plus, Send, Smile, WandSparkles } from "lucide-react";
 import { useState } from "react";
 
-export default function ChatComposer({ onSend, onOpenPlus, onDraw, onQuick }) {
+export default function ChatComposer({ onSend, onOpenPlus, onDraw, onQuick, partner = "The One" }) {
   const [text, setText] = useState("");
 
   function submit(event) {
@@ -20,7 +20,7 @@ export default function ChatComposer({ onSend, onOpenPlus, onDraw, onQuick }) {
         <input
           value={text}
           onChange={(event) => setText(event.target.value)}
-          placeholder="type something for The One..."
+          placeholder={`type something for ${partner}...`}
           className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-space-muted"
         />
         <button type="button" onClick={() => onQuick("gif")} className="grid h-9 w-9 place-items-center rounded-full text-space-muted">

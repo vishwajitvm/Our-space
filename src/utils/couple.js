@@ -18,3 +18,11 @@ export const couple = {
 export function partnerFor(sender) {
   return sender === couple.user.nickname ? couple.partner.nickname : couple.user.nickname;
 }
+
+export function realNameFor(nickname) {
+  return nickname === couple.partner.nickname ? couple.partner.realName : couple.user.realName;
+}
+
+export function initialFor(nickname) {
+  return nickname === couple.partner.nickname ? couple.partner.initial : couple.user.initial;
+}

@@ -1,0 +1,75 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isMember(roomId) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid));
+    }
+
+    match /rooms/{roomId} {
+      allow create: if signedIn();
+      allow get: if signedIn();
+      allow list: if false;
+      allow update: if isMember(roomId) ||
+        (signedIn() && resource.data.memberCount < 2 && request.resource.data.memberCount == 2);
+      allow delete: if false;
+
+      match /members/{userId} {
+        allow read: if isMember(roomId) || request.auth.uid == userId;
+        allow create: if signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.persona in ["AI", "The One"]
+          && get(/databases/$(database)/documents/rooms/$(roomId)).data.memberCount < 2;
+        allow update, delete: if request.auth.uid == userId;
+      }
+
+      match /meta/{docId} {
+        allow read, write: if isMember(roomId);
+      }
+
+      match /messages/{docId} {
+        allow read, create, update: if isMember(roomId);
+        allow delete: if false;
+      }
+
+      match /moods/{docId} {
+        allow read, create, update: if isMember(roomId);
+        allow delete: if false;
+      }
+
+      match /activities/{docId} {
+        allow read, create, update: if isMember(roomId);
+        allow delete: if false;
+      }
+
+      match /roomState/{docId} {
+        allow read, write: if isMember(roomId);
+      }
+
+      match /memories/{docId} {
+        allow read, create, update: if isMember(roomId);
+        allow delete: if false;
+      }
+
+      match /games/{docId} {
+        allow read, create, update: if isMember(roomId);
+        allow delete: if false;
+      }
+
+      match /letters/{docId} {
+        allow read, create, update: if isMember(roomId);
+        allow delete: if false;
+      }
+
+      match /bucketlist/{docId} {
+        allow read, create, update: if isMember(roomId);
+        allow delete: if false;
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isMember(roomId) {
+      return request.auth != null &&
+        firestore.exists(/databases/(default)/documents/rooms/$(roomId)/members/$(request.auth.uid));
+    }
+
+    match /rooms/{roomId}/{allPaths=**} {
+      allow read, write: if isMember(roomId);
+    }
+  }
+}

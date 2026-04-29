@@ -3,10 +3,12 @@ import ActionButton from "../components/ui/ActionButton.jsx";
 import CoupleAvatar from "../components/ui/CoupleAvatar.jsx";
 import NeonCard from "../components/ui/NeonCard.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
+import FirebaseNotice from "../components/ui/FirebaseNotice.jsx";
 import { addRoomDoc, setRoomState } from "../firebase/firestoreService.js";
 import { useRoomCollection } from "../hooks/useRoomCollection.js";
 import { useRoomState } from "../hooks/useRoomState.js";
 import { useAppStore } from "../store/useAppStore.js";
+import { partnerFor, realNameFor } from "../utils/couple.js";
 import { nextAnniversary, relationshipDays } from "../utils/date.js";
 import { dailyMissions, moods } from "../utils/seedData.js";
 
@@ -20,35 +22,47 @@ const quicks = [
 
 export default function Home() {
   const roomId = useAppStore((state) => state.roomId);
+  const persona = useAppStore((state) => state.persona);
   const showToast = useAppStore((state) => state.showToast);
   const { roomState } = useRoomState();
   const { items: activities } = useRoomCollection("activities");
   const anniversary = nextAnniversary();
   const mission = dailyMissions[new Date().getDate() % dailyMissions.length];
 
+  const partner = partnerFor(persona);
+
   async function sendQuick(label) {
-    const text = label === "Angry at You" ? "AI is angry but cute" : `AI sent The One a ${label.toLowerCase()}`;
-    await addRoomDoc(roomId, "activities", { actor: "AI", text, type: "quick" });
-    showToast(`${label} sent to The One`);
+    try {
+      const text = label === "Angry at You" ? `${persona} is angry but cute` : `${persona} sent ${partner} a ${label.toLowerCase()}`;
+      await addRoomDoc(roomId, "activities", { actor: persona, text, type: "quick" });
+      showToast(`${label} sent to ${partner}`);
+    } catch (error) {
+      showToast(error.message, "blue");
+    }
   }
 
   async function setMood(mood) {
-    await setRoomState(roomId, { mood, lastAction: `AI feels ${mood}` });
-    await addRoomDoc(roomId, "moods", { actor: "AI", mood });
+    try {
+      await setRoomState(roomId, { mood, lastAction: `${persona} feels ${mood}` });
+      await addRoomDoc(roomId, "moods", { actor: persona, mood });
+    } catch (error) {
+      showToast(error.message, "blue");
+    }
   }
 
   return (
     <>
-      <PageHeader eyebrow="Our Space" title="Hi AI" subtitle="The One has a place waiting for you." />
+      <PageHeader eyebrow="Our Space" title={`Hi ${persona}`} subtitle={`${partner} has a place waiting for you.`} />
       <section className="space-y-4 px-5 py-5">
+        <FirebaseNotice />
         <NeonCard className="relative overflow-hidden" delay={0.02}>
           <div className="flex items-center gap-4">
-            <CoupleAvatar label="The One" online={roomState.partnerOnline} size="lg" />
+            <CoupleAvatar label={partner} online={roomState.partnerOnline} size="lg" />
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-2 text-lg font-bold">
-                <Radio className="h-4 w-4 text-emerald-300" /> The One is online
+                <Radio className="h-4 w-4 text-emerald-300" /> {partner} is online
               </p>
-              <p className="mt-1 text-sm text-space-muted">Vandna is close enough for a soft notification.</p>
+              <p className="mt-1 text-sm text-space-muted">{realNameFor(partner)} is close enough for a soft notification.</p>
             </div>
           </div>
         </NeonCard>

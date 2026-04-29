@@ -6,6 +6,7 @@ import NeonCard from "../components/ui/NeonCard.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import { addRoomDoc } from "../firebase/firestoreService.js";
 import { useAppStore } from "../store/useAppStore.js";
+import { partnerFor } from "../utils/couple.js";
 import { gamePrompts } from "../utils/seedData.js";
 
 const games = [
@@ -19,21 +20,27 @@ const games = [
 
 export default function Play() {
   const roomId = useAppStore((state) => state.roomId);
+  const persona = useAppStore((state) => state.persona);
   const showToast = useAppStore((state) => state.showToast);
   const [active, setActive] = useState(null);
   const prompts = active ? gamePrompts[active.key] : [];
   const prompt = prompts?.[Math.floor(Math.random() * prompts.length)];
+  const partner = partnerFor(persona);
 
   async function saveRound(result) {
-    await addRoomDoc(roomId, "games", { game: active.title, result, actor: "AI" });
-    await addRoomDoc(roomId, "activities", { actor: "AI", text: `AI played ${active.title} with The One`, type: "game" });
-    showToast("Game moment saved for The One");
-    setActive(null);
+    try {
+      await addRoomDoc(roomId, "games", { game: active.title, result, actor: persona });
+      await addRoomDoc(roomId, "activities", { actor: persona, text: `${persona} played ${active.title} with ${partner}`, type: "game" });
+      showToast(`Game moment saved for ${partner}`);
+      setActive(null);
+    } catch (error) {
+      showToast(error.message, "blue");
+    }
   }
 
   return (
     <>
-      <PageHeader eyebrow="Play" title="Tiny chaos" subtitle="Games made for AI and The One only." />
+      <PageHeader eyebrow="Play" title="Tiny chaos" subtitle={`Games made for ${persona} and ${partner} only.`} />
       <section className="grid gap-4 px-5 py-5">
         {games.map((game, index) => (
           <NeonCard key={game.key} delay={index * 0.04} onClick={() => setActive(game)}>
@@ -56,8 +63,8 @@ export default function Play() {
             <p className="text-lg font-bold leading-7">{prompt}</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <ActionButton tone="soft" onClick={() => saveRound("AI picked the soft option")}>AI picks</ActionButton>
-            <ActionButton onClick={() => saveRound("The One gets the final word")}>The One wins</ActionButton>
+            <ActionButton tone="soft" onClick={() => saveRound(`${persona} picked the soft option`)}>{persona} picks</ActionButton>
+            <ActionButton onClick={() => saveRound(`${partner} gets the final word`)}>{partner} wins</ActionButton>
           </div>
         </div>
       </ModalShell>

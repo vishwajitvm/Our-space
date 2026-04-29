@@ -9,36 +9,56 @@ import { addRoomDoc } from "../firebase/firestoreService.js";
 import { uploadDataUrl, uploadFile } from "../firebase/storageService.js";
 import { useRoomCollection } from "../hooks/useRoomCollection.js";
 import { useAppStore } from "../store/useAppStore.js";
+import { partnerFor } from "../utils/couple.js";
 
 export default function Memories() {
   const roomId = useAppStore((state) => state.roomId);
+  const persona = useAppStore((state) => state.persona);
   const showToast = useAppStore((state) => state.showToast);
   const { items: memories } = useRoomCollection("memories");
   const fileRef = useRef(null);
   const [textOpen, setTextOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
 
+  const partner = partnerFor(persona);
+
   async function upload(event) {
     const file = event.target.files?.[0];
     if (!file) return;
-    const url = await uploadFile(roomId, "memories", file);
-    await addRoomDoc(roomId, "memories", { title: "A new soft proof", body: "AI saved this for The One.", type: "photo", url, mood: "romantic" });
-    showToast("Memory saved in the vault");
-    event.target.value = "";
+    try {
+      const url = await uploadFile(roomId, "memories", file);
+      await addRoomDoc(roomId, "memories", { title: "A new soft proof", body: `${persona} saved this for ${partner}.`, type: "photo", url, mood: "romantic" });
+      showToast("Memory saved in the vault");
+      event.target.value = "";
+    } catch (error) {
+      showToast(error.message, "blue");
+    }
   }
 
   async function saveText(value) {
-    await addRoomDoc(roomId, "memories", { title: value.split(".")[0].slice(0, 42) || "A private memory", body: value, type: "text", mood: "saved by AI" });
+    try {
+      await addRoomDoc(roomId, "memories", { title: value.split(".")[0].slice(0, 42) || "A private memory", body: value, type: "text", mood: `saved by ${persona}` });
+    } catch (error) {
+      showToast(error.message, "blue");
+    }
   }
 
   async function saveDoodle(dataUrl) {
-    const url = await uploadDataUrl(roomId, "memory-doodles", dataUrl);
-    await addRoomDoc(roomId, "memories", { title: "AI's doodle for The One", body: "A tiny drawing from the heart archive.", type: "doodle", url, mood: "playful" });
+    try {
+      const url = await uploadDataUrl(roomId, "memory-doodles", dataUrl);
+      await addRoomDoc(roomId, "memories", { title: `${persona}'s doodle for ${partner}`, body: "A tiny drawing from the heart archive.", type: "doodle", url, mood: "playful" });
+    } catch (error) {
+      showToast(error.message, "blue");
+    }
   }
 
   async function saveChatMoment() {
-    await addRoomDoc(roomId, "memories", { title: "Favorite chat moment", body: "The One sent a kiss and AI absolutely melted.", type: "chat", mood: "blushing" });
-    showToast("Favorite chat moment saved");
+    try {
+      await addRoomDoc(roomId, "memories", { title: "Favorite chat moment", body: `${partner} sent a kiss and ${persona} absolutely melted.`, type: "chat", mood: "blushing" });
+      showToast("Favorite chat moment saved");
+    } catch (error) {
+      showToast(error.message, "blue");
+    }
   }
 
   return (
@@ -68,7 +88,7 @@ export default function Memories() {
         </div>
       </section>
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={upload} />
-      <InputModal open={textOpen} onClose={() => setTextOpen(false)} onSubmit={saveText} title="Save a memory" label="What should AI never forget?" placeholder="That sleepy selfie from Vandna..." multiline />
+      <InputModal open={textOpen} onClose={() => setTextOpen(false)} onSubmit={saveText} title="Save a memory" label={`What should ${persona} never forget?`} placeholder="That sleepy selfie from Vandna..." multiline />
       <DoodleModal open={drawOpen} onClose={() => setDrawOpen(false)} onSend={saveDoodle} title="Save a doodle memory" />
     </>
   );

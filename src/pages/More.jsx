@@ -20,6 +20,7 @@ const futurePlans = ["Build a Sunday ritual", "Plan a Goa sunset day", "Save for
 
 export default function More() {
   const roomId = useAppStore((state) => state.roomId);
+  const persona = useAppStore((state) => state.persona);
   const leaveRoom = useAppStore((state) => state.leaveRoom);
   const showToast = useAppStore((state) => state.showToast);
   const { items: letters } = useRoomCollection("letters");
@@ -29,8 +30,12 @@ export default function More() {
   const todayQuestion = questions[new Date().getDate() % questions.length];
 
   async function addBucket(value) {
-    await addRoomDoc(roomId, "bucketlist", { text: value, done: false });
-    showToast("Bucket list promise added");
+    try {
+      await addRoomDoc(roomId, "bucketlist", { text: value, done: false, actor: persona });
+      showToast("Bucket list promise added");
+    } catch (error) {
+      showToast(error.message, "blue");
+    }
   }
 
   return (
